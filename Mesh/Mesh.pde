@@ -12,7 +12,7 @@ void setup()
   points[1] = new pt(50, 100);
   points[2] = new pt(120, 300);
   points[3] = new pt(300, 500);
-  points[4] = new pt(400, 325);
+  points[4] = new pt(400, 125);
   points[5] = new pt(350, 275);
   points[6] = new pt(475, 325);
   points[7] = new pt(250, 250);
@@ -28,6 +28,8 @@ void draw()
   for(int i = 0; i < points.length; i++)
   {
     ellipse(points[i].x, points[i].y, pointSize, pointSize);
+    fill(0);
+    text("" + i, points[i].x + 10, points[i].y);
   }
   
   for(int i = 0; i < edges.size(); i++)
@@ -77,11 +79,10 @@ void Delaunay()
   PVector AB = new PVector(chosenPt.x - leftMost.x, chosenPt.y - leftMost.y);
   edges.add(new pt(leftMostIdx, lowestIdx)); 
   
-  int closestIdx = getNearestPt(0, new PVector(AB.y, AB.x));
-  println(closestIdx);
+  int closestIdx = getNearestPt(0, rightOrth(AB));
   
-  edges.add(new pt(leftMostIdx, closestIdx)); 
-  edges.add(new pt(closestIdx, lowestIdx));
+  edges.add(new pt(lowestIdx, closestIdx)); 
+  edges.add(new pt(closestIdx, leftMostIdx));
  
   t.add(new tri(0, 1, 2)); 
   
@@ -91,29 +92,52 @@ void Delaunay()
 
 void bulge(int triIdx)
 {
+  //if(triIdx > 2) return;
   println("Bulge: " + triIdx);
   tri T = t.get(triIdx);
   
   pt a = points[edges.get(T.e2).x];
   pt b = points[edges.get(T.e2).y];
   
-  PVector dir = new PVector(b.y - a.y, b.x - a.x);
-  int p1 = getNearestPt(T.e2, dir);
-  if(p1 < 0) return;
+  PVector dir = new PVector(b.x - a.x, b.y - a.y);
+  int p1 = getNearestPt(T.e2, leftOrth(dir));
+  if(p1 >= 0)
+  {
   
-  println(edges.get(T.e2).x + " " + edges.get(T.e2).y);
-  
-  //first expand
-  edges.add(new pt(edges.get(T.e2).x, p1)); 
-  edges.add(new pt(p1, edges.get(T.e2).y));
-  t.add(new tri(T.e2, edges.size() - 2, edges.size() - 1));
-  bulge(t.size() - 1);
+    println("Left: " + edges.get(T.e2).x + " " + edges.get(T.e2).y);
+    
+    //first expand
+    edges.add(new pt(edges.get(T.e2).x, p1)); 
+    edges.add(new pt(p1, edges.get(T.e2).y));
+    t.add(new tri(T.e2, edges.size() - 2, edges.size() - 1));
+    println(edges.get(T.e2).x + " " + edges.get(T.e2).y);
+    bulge(t.size() - 1);
+  }
   
   //second expand
   a = points[edges.get(T.e3).x];
   b = points[edges.get(T.e3).y];
-  dir = new PVector(b.y - a.y, b.x - a.x);
-  getNearestPt(T.e3, dir);
+  dir = new PVector(b.x - a.x, b.y - a.y);
+  p1 = getNearestPt(T.e3, leftOrth(dir));
+  if(p1 >= 0)
+  {
+    println("Right: " + edges.get(T.e3).x + " " + edges.get(T.e3).y);
+    edges.add(new pt(edges.get(T.e3).x, p1)); 
+    edges.add(new pt(p1, edges.get(T.e3).y));
+    t.add(new tri(T.e3, edges.size() - 2, edges.size() - 1));
+    println(edges.get(T.e3).x + " " + edges.get(T.e3).y);
+    bulge(t.size() - 1);
+  }
+}
+
+PVector rightOrth(PVector orig)
+{
+  return new PVector(-orig.y, orig.x);
+}
+
+PVector leftOrth(PVector orig)
+{
+  return new PVector(orig.y, -orig.x);
 }
 
 int getNearestPt(int edge, PVector dir)
@@ -126,9 +150,9 @@ int getNearestPt(int edge, PVector dir)
   
   for(int i = 0; i < points.length; i++)
   {
-    if(i == edges.get(edge).x || i == edges.get(edge).y || isEdgeConnected(edge, i)) continue;
+    if(i == edges.get(edge).x || i == edges.get(edge).y || isEdgeConnected(edge, i) || wouldCollide(edge, i)) continue;
     
-    PVector tmp = new PVector(points[i].x - a.x, points[i].y - a.y);
+    PVector tmp = new PVector(points[i].x - (a.x + b.x) / 2, points[i].y - (a.y + b.y) / 2);
     float angl = PVector.angleBetween(dir, tmp);
     if(abs(angl) > PI / 2) continue;
     
@@ -157,9 +181,32 @@ int getNearestPt(int edge, PVector dir)
 
 boolean isEdgeConnected(int edgeIdx, int pointIndex)
 {
-  for(pt edge: edges)
+  if(edges.get(edgeIdx).x == pointIndex || edges.get(edgeIdx).y == pointIndex) return true;
+  
+  return false;
+}
+
+boolean wouldCollide(int edgeIdx, int pointIndex)
+{
+  pt myEdge = edges.get(edgeIdx);
+  
+  pt e1 = points[myEdge.x];
+  pt e2 = points[myEdge.y];
+  
+  pt dest = points[pointIndex];
+  
+  for(pt edge : edges)
   {
-    if(edge.x == pointIndex || edge.y == pointIndex) return true;
+    //if(edge == myEdge|| edge.x == pointIndex || edge.y == pointIndex) continue;
+    //if(edge.x == myEdge.x || edge.x == myEdge.y || edge.y == myEdge.x || edge.y == myEdge.y) continue;
+    
+    //println("SDF");
+    
+    pt p1 = points[edge.x];
+    pt p2 = points[edge.y];
+    
+    if(util.intersect(p1.x, p1.y, p2.x, p2.y, e1.x, e1.y, dest.x, dest.y) > 0) return true;
+    if(util.intersect(p1.x, p1.y, p2.x, p2.y, e2.x, e2.y, dest.x, dest.y) > 0) return true;
   }
   
   return false;
