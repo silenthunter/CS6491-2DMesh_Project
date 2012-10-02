@@ -1,50 +1,53 @@
-
-pt[] points = new pt[10];
-ArrayList<pt> edges = new ArrayList<pt>();
-ArrayList<tri> t = new ArrayList<tri>();
-
-float pointSize = 5.0f;
-
-void setup()
-{
-  size(800,600);
-  points[0] = new pt(100, 100);
-  points[1] = new pt(50, 100);
-  points[2] = new pt(120, 300);
-  points[3] = new pt(300, 500);
-  points[4] = new pt(400, 125);
-  points[5] = new pt(350, 275);
-  points[6] = new pt(475, 325);
-  points[7] = new pt(250, 250);
-  points[8] = new pt(425, 300);
-  points[9] = new pt(100, 400);
+class DelaunayMesh {
+    pts P;
+    ArrayList<pt> edges = new ArrayList<pt>();
+    ArrayList<tri> t = new ArrayList<tri>();
+    int nv=0, maxnv = 1000;  pt[] G = new pt [maxnv];                        // VERTICES
+    int nt = 0, maxnt = maxnv*2; boolean[] visible = new boolean[maxnt];     // TRIANGLES
+    int nc = 0; int[] V = new int [3*maxnt];   int[] O = new int [3*maxnt];  // CORNERS 
+    int c=0;    // current corner that can be edited with keys
+    pt[] points;  
   
-  Delaunay();
-}
-
-void draw()
-{
-  background(255);
-  for(int i = 0; i < points.length; i++)
-  {
-    ellipse(points[i].x, points[i].y, pointSize, pointSize);
-    fill(0);
-    text("" + i, points[i].x + 10, points[i].y);
-  }
-  
-  for(int i = 0; i < edges.size(); i++)
-  {
-    pt p1 = points[edges.get(i).x];
-    pt p2 = points[edges.get(i).y];
+  DelaunayMesh(pts p) {P=p; nv=p.nv; G=p.G; points=G;};
+  void reset() {nv=0; nt=0; nc=0; c=0;}                                                  // removes all vertices and triangles
+  void addVertex(pt P) { G[nv++].setTo(P); }                                             // adds a vertex to vertex table G
+  void addTriangle(int i, int j, int k) {V[nc++]=i; V[nc++]=j; V[nc++]=k; nt=nc/3; }     // adds triangle (i,j,k) to V table
+  void showVertices() {for (int i=0; i<nv; i++) {G[i].tag(Integer.toString(i));} }                          // shows all vertices as dots
+  void showTriangles() { 
+    println("point1");
+    for(int i = 0; i < edges.size(); i++) {
+      println((int)edges.get(i).x);
+    pt p1 = points[(int)edges.get(i).x];
+    pt p2 = points[(int)edges.get(i).y];
     line(p1.x, p1.y, p2.x, p2.y);
   }
-}
+}         // draws all triangles (edges, or filled)
+//  void showShrunkTriangles() { for (int c=0; c<nc; c+=3) show(g(c), g(c+1), g(c+2),4); }  // shows triangles offset inwards by 4 (for filling)
+//  void showTrianglesOrientation() { for (int c=0; c<nc; c++) arrow(cg(n(c)),cg(p(c)));}   // shows arrows as dart inside triangle
+//  void showBorder() {for (int i=0; i<nc; i++) {if (bord(i)) {showEdge(i);}; }; };         // draws all border edges of mesh
+//  void showCorner() {cg(c).show(3); };                                                    // draws current corner c
 
-void Delaunay()
+  int t (int c) {int r=int(c/3); return(r);}                 int t () {return t(c);}  // triangle of corner c
+  int n (int c) {int r=3*int(c/3)+(c+1)%3; return(r);}       void n () {c=n(c); }    // next corner
+  int p (int c) {int r=3*int(c/3)+(c+2)%3; return(r);}       void p () {c=p(c); }  // previous corner
+  int v (int c) {return(V[c]);}                              int v () {return v(c);} // vertex of c
+  int o (int c) {return(O[c]);}                              void o () {c=o(c);}   // opposite corner
+  int l (int c) {return(o(n(c)));}                           void l () {c=l(c);} // left
+  int r (int c) {return(o(p(c)));}                           void r () {c=r(c);}  // right
+  pt g (int c) {return(G[V[c]]);};                           pt g () {return g(c);}  // shortcut to get the point where the vertex v(c) of corner c is located
+//  pt cg(int c) {return g(c).makeOffset(g(p(c)),g(n(c)),-4);}; pt cg () {return cg(c);}  // computes offset location of point at corner c
+
+  boolean nb(int c) {return(O[c]!=-1);};  // not a border corner
+  boolean bord(int c) {return(O[c]==-1);};  // a border corner
+  
+  void Delaunay()
 {
+  edges.clear();
+  t.clear();
+  
   int leftMostIdx = 0;
   pt leftMost = points[0];
-  for(int i = 1; i < points.length; i++)
+  for(int i = 1; i < nv; i++)
     if(points[i].x < leftMost.x)
     {
       leftMost = points[i];
@@ -56,7 +59,7 @@ void Delaunay()
   int lowestIdx = 0;
   pt chosenPt = null;
   //Find Vector with lowest angle
-  for(int i = 0; i < points.length; i++)
+  for(int i = 0; i < nv; i++)
   {
     if(points[i] == leftMost) continue;
     
@@ -96,8 +99,8 @@ void bulge(int triIdx)
   println("Bulge: " + triIdx);
   tri T = t.get(triIdx);
   
-  pt a = points[edges.get(T.e2).x];
-  pt b = points[edges.get(T.e2).y];
+  pt a = points[(int)edges.get(T.e2).x];
+  pt b = points[(int)edges.get(T.e2).y];
   
   PVector dir = new PVector(b.x - a.x, b.y - a.y);
   int p1 = getNearestPt(T.e2, leftOrth(dir));
@@ -115,8 +118,8 @@ void bulge(int triIdx)
   }
   
   //second expand
-  a = points[edges.get(T.e3).x];
-  b = points[edges.get(T.e3).y];
+  a = points[(int)edges.get(T.e3).x];
+  b = points[(int)edges.get(T.e3).y];
   dir = new PVector(b.x - a.x, b.y - a.y);
   p1 = getNearestPt(T.e3, leftOrth(dir));
   if(p1 >= 0)
@@ -142,13 +145,13 @@ PVector leftOrth(PVector orig)
 
 int getNearestPt(int edge, PVector dir)
 {
-  pt a = points[edges.get(edge).x];
-  pt b = points[edges.get(edge).y];
+  pt a = points[(int)edges.get(edge).x];
+  pt b = points[(int)edges.get(edge).y];
   
   float smallestBulge = 0000f;
   int closestPt = -1;
   
-  for(int i = 0; i < points.length; i++)
+  for(int i = 0; i < nv; i++)
   {
     if(i == edges.get(edge).x || i == edges.get(edge).y || isEdgeConnected(edge, i) || wouldCollide(edge, i)) continue;
     
@@ -190,8 +193,8 @@ boolean wouldCollide(int edgeIdx, int pointIndex)
 {
   pt myEdge = edges.get(edgeIdx);
   
-  pt e1 = points[myEdge.x];
-  pt e2 = points[myEdge.y];
+  pt e1 = points[(int)myEdge.x];
+  pt e2 = points[(int)myEdge.y];
   
   pt dest = points[pointIndex];
   
@@ -202,8 +205,8 @@ boolean wouldCollide(int edgeIdx, int pointIndex)
     
     //println("SDF");
     
-    pt p1 = points[edge.x];
-    pt p2 = points[edge.y];
+    pt p1 = points[(int)edge.x];
+    pt p2 = points[(int)edge.y];
     
     if(util.intersect(p1.x, p1.y, p2.x, p2.y, e1.x, e1.y, dest.x, dest.y) > 0) return true;
     if(util.intersect(p1.x, p1.y, p2.x, p2.y, e2.x, e2.y, dest.x, dest.y) > 0) return true;
@@ -235,18 +238,115 @@ pt circumCenter (pt A, pt B, pt C) {    // computes the center of a circumscirbi
   X.y += AB.y;
   return(X);
   };
-
-class pt
-{
-  public int x,y;
   
-  pt(int x, int y)
-  {
-    this.x = x;
-    this.y = y;
-  }
-}
+  
+//  void showCorner(int c, float r) {cg(c).show(r); };   // renders corner c as small ball
+//  void showEdge(int c) {g(p(c)).to(g(n(c))); };  // draws edge of t(c) opposite to corner c
 
+// void triangulate() {     // performs Delaunay triangulation using a quartic algorithm
+//   c=0;                   // to reset current corner
+//   pt X = new pt(0,0);
+//   float r=1;
+//   for (int i=0; i<nv-2; i++) for (int j=i+1; j<nv-1; j++) for (int k=j+1; k<nv; k++) {
+//      X=circumCenter (G[i],G[j],G[k]);  r = X.disTo(G[i]);
+//      boolean found=false; 
+//      for (int m=0; m<nv; m++) if ((m!=i)&&(m!=j)&&(m!=k)&&(X.disTo(G[m])<=r)) found=true;  
+//     if (!found) {if (ccw(G[i],G[j],G[k])) addTriangle(i,j,k); else addTriangle(i,k,j);};
+//     }; 
+//   }  
+//
+//  void computeOslow() {                      // slow method to set the O table from the V table, assumes consistent orientation of tirangles
+//    for (int i=0; i<3*nt; i++) {O[i]=-1;};  // init O table to -1: has no opposite (i.e. is a border corner)
+//    for (int i=0; i<3*nt; i++) {  for (int j=i+1; j<3*nt; j++) {       // for each corner i, for each other corner j
+//      if( (v(n(i))==v(p(j))) && (v(p(i))==v(n(j))) ) {O[i]=j; O[j]=i;};};}; // make i and j opposite if they match 
+//   }
+//  
+//  void computeO() {                                          // faster method fo r computin gO
+//    int nIC [] = new int [maxnv];                            // number of incident corners on each vertex
+//    println("COMPUTING O: nv="+nv +", nt="+nt +", nc="+nc );
+//    int maxValence=0;
+//    for (int c=0; c<nc; c++) {O[c]=-1;};                      // init O table to -1: has no opposite (i.e. is a border corner)
+//    for (int v=0; v<nv; v++) {nIC[v]=0; };                    // init the valence value for each vertex to 0
+//    for (int c=0; c<nc; c++) {nIC[v(c)]++;}                   // computes vertex valences
+//    for (int v=0; v<nv; v++) {if(nIC[v]>maxValence) {maxValence=nIC[v]; };};  println(" Max valence = "+maxValence+". "); // computes and prints maximum valence 
+//    int IC [][] = new int [maxnv][maxValence];                 // declares 2D table to hold incident corners (htis can be folded into a 1D table !!!!!)
+//    for (int v=0; v<nv; v++) {nIC[v]=0; };                     // resets the valence of each vertex to 0 . It will be sued as a counter of incident corners.
+//    for (int c=0; c<nc; c++) {IC[v(c)][nIC[v(c)]++]=c;}        // appends incident corners to corresponding vertices     
+//    for (int c=0; c<nc; c++) {                                 // for each corner c
+//      for (int i=0; i<nIC[v(p(c))]; i++) {                     // for each incident corner a of the vertex of the previous corner of c
+//        int a = IC[v(p(c))][i];      
+//        for (int j=0; j<nIC[v(n(c))]; j++) {                   // for each other corner b in the list of incident corners to the previous corner of c
+//           int b = IC[v(n(c))][j];
+//           if ((b==n(a))&&(c!=n(b))) {O[c]=n(b); O[n(b)]=c; };  // if a and b have matching opposite edges, make them opposite
+//           };
+//        };
+//      };
+//    } // end computeO
+//
+//int countloops() {                                      // returns number of bounding loops (holes) in mesh
+//  boolean M[] = new boolean [3*nt];			// flag for marking visited corners
+//  for (int c=0; c<3*nt; c++) M[c]=false;		// all corners not visited initially
+//  int loops=0;						// counter of loops
+//  for (int b=0; b<3*nt; b++) {			 	// look for not marked border corners
+//     int c=b;                                           // use c to trace loop
+//     if ( (!M[c]) && (o(c) == -1) ) {			// found not marked and border
+//	loops++;					// new loop
+//        while (!M[c]) {					// while not finished tracing
+//           M[c]=true;					// mark it
+//           c=n(c);					// start with the next corner
+//           while ( o(c) != -1 ) c=n(o(c)); 		// keep turning until a border corner is reached 
+//     }; }; };
+//  return(loops);
+//  }
+//  
+//  pt triCenter() {return triCenter(c);}                         // returns center of mass of triangle of current corner 
+//  pt triCenter(int c) {return center(g(c),g(n(c)),g(p(c))); }  // returns center of mass of triangle of corner c
+//  pt triCircumcenter() {return triCircumcenter(c);}                         // returns circumcenter of triangle of current corner 
+//  pt triCircumcenter(int c) {return circumCenter(g(c),g(n(c)),g(p(c))); }  // returns circumcenter of triangle of corner c
+//  void excludeInvisibleTriangles () {for (int b=0; b<nc; b++) {if (!visible[t(o(b))]) {O[b]=-1;};};} // sets o of opposite corners to -1 for triangles marked as invisible
+//  void showDual () {for (int b=0; b<nc; b++) if (nb(b)) if (b<o(b)) triCircumcenter(b).to(triCircumcenter(o(b)));}
+//
+//  void compactVO() {                                                // compacts V and O tables
+//    println("COMPACT TRIANGLES: nv="+nv +", nt="+nt +", nc="+nc );
+//    int[] U = new int [nc];
+//    int lc=-1; for (int c=0; c<nc; c++) {if (visible[t(c)]) {U[c]=++lc; }; };
+//    for (int c=0; c<nc; c++) {if (nb(c)) {O[c]=U[o(c)];} else {O[c]=-1;}; };
+//    int lt=0;
+//    for (int t=0; t<nt; t++)  if (visible[t]) {
+//        V[3*lt]=V[3*t]; V[3*lt+1]=V[3*t+1]; V[3*lt+2]=V[3*t+2]; 
+//        O[3*lt]=O[3*t]; O[3*lt+1]=O[3*t+1]; O[3*lt+2]=O[3*t+2]; 
+//        lt++;
+//        };
+//    nt=lt; nc=3*nt;
+//    println("      ...  NOW: nv="+nv +", nt="+nt +", nc="+nc );
+//    }
+//
+//  void compactV() {                                                 // compacts the G table to remove deleted trangles
+//    println("COMPACT VERTICES: nv="+nv +", nt="+nt +", nc="+nc );
+//    int[] U = new int [nv];
+//    boolean[] deleted = new boolean [nv];
+//    for (int v=0; v<nv; v++) {deleted[v]=true;};
+//    for (int c=0; c<nc; c++) {deleted[v(c)]=false;};
+//    int lv=-1; for (int v=0; v<nv; v++) {if (!deleted[v]) {U[v]=++lv; }; };
+//    for (int c=0; c<nc; c++) {V[c]=U[v(c)]; };
+//    lv=0;
+//    for (int v=0; v<nv; v++) if (!deleted[v]) {G[lv].setTo(G[v]);  deleted[lv]=false; lv++; };
+//    nv=lv;
+//    println("      ...  NOW: nv="+nv +", nt="+nt +", nc="+nc );
+//    }
+//
+//void flip () {flip(c);}                     // flips edge of current corner
+//void flip(int c) {V[n(o(c))]=v(c); V[n(c)]=v(o(c)); int co=o(c); O[co]=r(c); O[r(c)]=co; O[c]=r(co); O[r(co)]=c; O[p(c)]=p(co); O[p(co)]=p(c); }  // fip edge opposite to corner c
+//void doFlips() {for (int c=0; c<nc; c++) {if (g(n(c)).disTo(g(p(c)))>g(c).disTo(g(o(c)))) {flip(c);}; };  } // assumes manifold and flips all bad edges
+//
+//void collapse() {collapse(c);}  // collapses edge opposite to current corner
+//void collapse(int c) {      // collapse edge opposite to corner c for simplification 
+//    int b=p(c), oc=o(c), vnc=v(n(c));
+//    for (int a=b; a!=n(oc); a=p(r(a))) {V[a]=vnc;}; V[p(c)]=vnc; V[n(oc)]=vnc; 
+//    O[l(c)]=r(c); O[r(c)]=l(c);     O[l(oc)]=r(oc); O[r(oc)]=l(oc); 
+//  }
+
+} // end of MESH
 class tri
 {
   int e1, e2, e3;
