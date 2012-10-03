@@ -53,7 +53,7 @@ void keyPressed() { // executed each time a key is pressed: sets the "keyPressed
 //  if(key=='T') {S.tuck(.5); }
 //  if(key=='U') {S.tuck(-.5); }
 //  if(key=='B') {S.tuck(.5); S.tuck(-.5);}
-  if(key=='5') mesh.spreadMesh(new int[]{0,1,2}); //debugging spreadMesh
+  if(key=='5') mesh.spreadMesh(new int[]{0,1,2,3,4,5,6,7,8,9}); //debugging spreadMesh
   if(key=='Q') exit();  // quit application
   }
 

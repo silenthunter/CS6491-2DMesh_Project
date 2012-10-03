@@ -1,8 +1,8 @@
 //Parameters to control the spreading simulation
 
-float DEFAULT_MASS = 10; //assume same mass for all
+float DEFAULT_MASS = 1; //assume same mass for all
 float SPRING_CONSTANT = 1.5; //assume same spring const for all
-float DAMPING_CONSTANT = 0.75; // assume same damping const for all
+float DAMPING_CONSTANT = 1.5; // assume same damping const for all
 float REST_LENGTH = 50; // assume same rest length for all
 float DT = 0.1; // time unit for animation
 float GRAVITY = 0;//-9.81;
@@ -281,7 +281,7 @@ void spreadMesh(int[] cutNodes){
     G[cutNodes[i]].fixed = false;
     println("setting " + cutNodes[i] + " to false");
   }
-  animate();
+  //animate();
 }
 void animate(){
   // update velocity for all unfixed points
@@ -308,9 +308,8 @@ void animate(){
         scribeHeader(new Float(acc).toString(), 50);
         //now to apply damping
         float dampingacc = DAMPING_CONSTANT * sqrt(sqrt(sq(G[i].velocityx)+sq(G[i].velocityy))) / DEFAULT_MASS; // damping force proportional to velocity 
-        acc -= dampingacc;
         float ratio = acc/springLength; 
-        //float dampingratio = dampingacc / springLength;
+        float dampingratio = dampingacc / springLength;
        
         if(acc < 0){
           // push i away
@@ -348,6 +347,12 @@ void animate(){
          //   dvy += (Math.abs(dampingratio) * Math.abs(src.y-dest.y)) * DT;  
           }
         }
+        
+        //do damping
+        if(G[i].velocityx > 0) dvx -= (Math.abs(dampingratio) * Math.abs(src.x - dest.x)) * DT;
+        else if(G[i].velocityx < 0) dvx += (Math.abs(dampingratio) * Math.abs(src.x - dest.x)) * DT;
+        if(G[i].velocityy > 0) dvy -= (Math.abs(dampingratio) * Math.abs(src.y - dest.y)) * DT;
+        else if(G[i].velocityy < 0) dvy += (Math.abs(dampingratio) * Math.abs(src.y - dest.y)) * DT;
         
       }
     }
