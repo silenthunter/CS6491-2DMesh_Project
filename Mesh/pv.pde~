@@ -9,7 +9,7 @@
 //************************************************************************
 //**** POINT CLASS
 //************************************************************************
-class pt { float x=0,y=0; boolean fixed=true; float velocityx = 0, velocityy=0;
+class pt { float x=0,y=0; 
   // CREATE
   pt () {}
   pt (float px, float py) {x = px; y = py;};
