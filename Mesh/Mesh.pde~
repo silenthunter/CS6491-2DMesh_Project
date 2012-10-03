@@ -1,16 +1,6 @@
-//Parameters to control the spreading simulation
-
-float DEFAULT_MASS = 10; //assume same mass for all
-float SPRING_CONSTANT = 1.5; //assume same spring const for all
-float DAMPING_CONSTANT = 0.75; // assume same damping const for all
-float REST_LENGTH = 50; // assume same rest length for all
-float DT = 0.1; // time unit for animation
-float GRAVITY = 0;//-9.81;
-float EPSILON = 0.0001;
-
 class DelaunayMesh {
     pts P;
-    ArrayList<pt> edges = new ArrayList<pt>(); // a pt is just 2 ints (x,y) which is now used as indices to points i.e. (src index, dest index)
+    ArrayList<pt> edges = new ArrayList<pt>();
     ArrayList<tri> t = new ArrayList<tri>();
     int nv=0, maxnv = 1000;  pt[] G = new pt [maxnv];                        // VERTICES
     int nt = 0, maxnt = maxnv*2; boolean[] visible = new boolean[maxnt];     // TRIANGLES
@@ -274,96 +264,6 @@ pt circumCenter (pt A, pt B, pt C) {    // computes the center of a circumscirbi
   };
   
   
-//after cutting, spread the mesh  
-void spreadMesh(int[] cutNodes){
-  // unfix the cut pointsfs
-  for(int i = 0; i < cutNodes.length; i++){
-    G[cutNodes[i]].fixed = false;
-    println("setting " + cutNodes[i] + " to false");
-  }
-  animate();
-}
-void animate(){
-  // update velocity for all unfixed points
-  for(int i = 0; i < G.length; i++){
-    if( true == G[i].fixed) continue; // skip the fixed points, can't be moved
-    float dvx = 0, dvy = 0; // change in velocity
-    float dx = 0, dy = 0;  // change in displacement
-    
-    // find all edges incident on G[i] since each edge contributes a vector
-    for(int j = 0; j < edges.size(); j++) {
-      
-      pt currEdge = edges.get(j), src, dest;
-      int srcIndex, destIndex;
-      srcIndex = (int)currEdge.x;
-      destIndex = (int)currEdge.y;
-      
-      //edge found
-      if(srcIndex == i || destIndex == i){
-        int otherIndex = ((srcIndex == i) ? destIndex : srcIndex);
-        src = points[srcIndex];
-        dest = points[destIndex];
-        float springLength = d(src, dest);
-        float acc = (springLength - REST_LENGTH) * SPRING_CONSTANT / DEFAULT_MASS; // hooke's law
-        scribeHeader(new Float(acc).toString(), 50);
-        //now to apply damping
-        float dampingacc = DAMPING_CONSTANT * sqrt(sqrt(sq(G[i].velocityx)+sq(G[i].velocityy))) / DEFAULT_MASS; // damping force proportional to velocity 
-        acc -= dampingacc;
-        float ratio = acc/springLength; 
-        //float dampingratio = dampingacc / springLength;
-       
-        if(acc < 0){
-          // push i away
-          if(G[i].x > G[otherIndex].x){
-            dvx += (Math.abs(ratio) * Math.abs(src.x-dest.x)) * DT;
-       //     dvx -= (Math.abs(dampingratio) * Math.abs(src.x-dest.x)) * DT;
-          }else{
-            dvx -= (Math.abs(ratio) * Math.abs(src.x-dest.x)) * DT;
-       //     dvx += (Math.abs(dampingratio) * Math.abs(src.x-dest.x)) * DT;
-          }
-          
-          if(G[i].y > G[otherIndex].y){
-            dvy += (Math.abs(ratio) * Math.abs(src.y-dest.y)) * DT;
-        //    dvy -= (Math.abs(dampingratio) * Math.abs(src.y-dest.y)) * DT;
-          }else{
-            dvy -= (Math.abs(ratio) * Math.abs(src.y-dest.y)) * DT;   
-       //     dvy += (Math.abs(dampingratio) * Math.abs(src.y-dest.y)) * DT;       
-          }
-      } else {
-          // pull i closer
-          if(G[i].x < G[otherIndex].x){
-            dvx += (Math.abs(ratio) * Math.abs(src.x-dest.x)) * DT;
-        //    dvx -= (Math.abs(dampingratio) * Math.abs(src.x-dest.x)) * DT;
-          }
-          else{
-            dvx -= (Math.abs(ratio) * Math.abs(src.x-dest.x)) * DT;
-          //  dvx += (Math.abs(dampingratio) * Math.abs(src.x-dest.x)) * DT;
-          }
-          if(G[i].y < G[otherIndex].y){
-            dvy += (Math.abs(ratio) * Math.abs(src.y-dest.y)) * DT;
-         //   dvy -= (Math.abs(dampingratio) * Math.abs(src.y-dest.y)) * DT;
-          }
-          else{
-            dvy -= (Math.abs(ratio) * Math.abs(src.y-dest.y)) * DT; 
-         //   dvy += (Math.abs(dampingratio) * Math.abs(src.y-dest.y)) * DT;  
-          }
-        }
-        
-      }
-    }
-    dvy -= GRAVITY * DT;
-    G[i].velocityx += dvx;
-    G[i].velocityy += dvy;
-  }
-  //update position for all unfixed points
-  for(int i = 0; i < G.length; i++){
-    if( true == G[i].fixed) continue; // skip the fixed points, can't be moved
-//    if(G[i].velocityx < EPSILON) G[i].velocityx = 0;
-  //  if(G[i].velocityy < EPSILON) G[i].velocityy = 0;
-    G[i].x += G[i].velocityx * DT;
-    G[i].y += G[i].velocityy * DT;
-  }
-}
 //  void showCorner(int c, float r) {cg(c).show(r); };   // renders corner c as small ball
 //  void showEdge(int c) {g(p(c)).to(g(n(c))); };  // draws edge of t(c) opposite to corner c
 
@@ -387,7 +287,7 @@ void animate(){
 //  
 //  void computeO() {                                          // faster method fo r computin gO
 //    int nIC [] = new int [maxnv];                            // number of incident corners on each vertex
-//    ("COMPUTING O: nv="+nv +", nt="+nt +", nc="+nc );
+//    println("COMPUTING O: nv="+nv +", nt="+nt +", nc="+nc );
 //    int maxValence=0;
 //    for (int c=0; c<nc; c++) {O[c]=-1;};                      // init O table to -1: has no opposite (i.e. is a border corner)
 //    for (int v=0; v<nv; v++) {nIC[v]=0; };                    // init the valence value for each vertex to 0

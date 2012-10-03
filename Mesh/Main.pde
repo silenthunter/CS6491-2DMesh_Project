@@ -1,3 +1,5 @@
+boolean DEBUG_SPREAD = true;
+
 // LecturesInGraphics: smoothing
 // Template for sketches
 // Author: Jarek ROSSIGNAC, last edited on September 10, 2012
@@ -16,6 +18,7 @@ void setup() {               // executed once at the begining
   P.declare(); // P.declare().makeGrid(3);
   P.loadPts("data/pts");
   mesh=new DelaunayMesh(P);
+  if(DEBUG_SPREAD) mesh.Delaunay(); 
   
   }
 
@@ -27,7 +30,8 @@ void draw() {      // executed at each frame
   //pt A=P.G[0];  pt B=P.G[1];  pt C=P.G[2]; 
   //A.show();
   mesh.showVertices();
-  mesh.Delaunay();
+  if(!DEBUG_SPREAD) mesh.Delaunay();
+  mesh.animate();
   mesh.showTriangles();
   if(scribeText) displayTextImage();
   }  // end of draw()
@@ -49,7 +53,7 @@ void keyPressed() { // executed each time a key is pressed: sets the "keyPressed
 //  if(key=='T') {S.tuck(.5); }
 //  if(key=='U') {S.tuck(-.5); }
 //  if(key=='B') {S.tuck(.5); S.tuck(-.5);}
-
+  if(key=='5') mesh.spreadMesh(new int[]{0,1,2}); //debugging spreadMesh
   if(key=='Q') exit();  // quit application
   }
 
