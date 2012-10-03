@@ -50,7 +50,7 @@ void keyPressed() { // executed each time a key is pressed: sets the "keyPressed
 //  if(key=='U') {S.tuck(-.5); }
 //  if(key=='B') {S.tuck(.5); S.tuck(-.5);}
 
-  if(key=='Q') exit();  // quit application
+  if(key=='q') mesh.Delaunay();  // quit application
   }
 
 void mousePressed() {  // executed when the mouse is pressed

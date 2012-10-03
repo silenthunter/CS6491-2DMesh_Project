@@ -148,13 +148,13 @@ int getNearestPt(int edge, PVector dir)
   boolean broken = false;
   pt a = points[(int)edges.get(edge).x];
   pt b = points[(int)edges.get(edge).y];
-  if(edges.get(edge).x == 9 && edges.get(edge).y == 7)
+  //if(edges.get(edge).x == 9 && edges.get(edge).y == 7)
   {
     broken = true;
-    println("Broken edge!");
+    //println("Broken edge!");
   }
   
-  float smallestBulge = 0000f;
+  float smallestBulge = 10000f;
   int closestPt = -1;
   
   for(int i = 0; i < nv; i++)
@@ -170,26 +170,30 @@ int getNearestPt(int edge, PVector dir)
     float angl = PVector.angleBetween(dir, tmp);
     if(abs(angl) > PI / 2) continue;
     
-    pt g = circumCenter(a, b, points[i]);
+    pt g = circumCenter(a, points[i], b);
     PVector AB = new PVector(b.x - a.x, b.y - a.y);
     PVector AG = new PVector(g.x - a.x, g.y - a.y);
     
     float r = distance(g, a);
-    PVector d = AB.cross(AG);
-    //println(d);
-    //AB.normalize();
-    d.div(AB.mag());
-    //println(d);
+    float d = AB.x * AG.y - AB.y * AG.x;
+    d /= AB.mag();
     
-    float bulge = r - d.mag();
-    //println(bulge);
-    if(bulge > smallestBulge)
+    if((Math.abs(PVector.angleBetween(tmp, AG)) > PI / 2 && d < 0) ||
+        Math.abs(PVector.angleBetween(tmp, AG)) < PI / 2 && d > 0)
+      d *= -1;
+      
+    println(d);
+    
+    float bulge = r - d;
+    println(i + " = " + bulge);
+    if(bulge < smallestBulge)
     {
       smallestBulge = bulge;
       closestPt = i;
     }
   }
   
+  println("Closest:" + closestPt);
   return closestPt;
 }
 
