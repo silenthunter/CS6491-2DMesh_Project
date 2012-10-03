@@ -14,9 +14,9 @@ class DelaunayMesh {
   void addTriangle(int i, int j, int k) {V[nc++]=i; V[nc++]=j; V[nc++]=k; nt=nc/3; }     // adds triangle (i,j,k) to V table
   void showVertices() {for (int i=0; i<nv; i++) {G[i].tag(Integer.toString(i));} }                          // shows all vertices as dots
   void showTriangles() { 
-    println("point1");
+    //println("point1");
     for(int i = 0; i < edges.size(); i++) {
-      println((int)edges.get(i).x);
+      //println((int)edges.get(i).x);
     pt p1 = points[(int)edges.get(i).x];
     pt p2 = points[(int)edges.get(i).y];
     line(p1.x, p1.y, p2.x, p2.y);
@@ -145,15 +145,26 @@ PVector leftOrth(PVector orig)
 
 int getNearestPt(int edge, PVector dir)
 {
+  boolean broken = false;
   pt a = points[(int)edges.get(edge).x];
   pt b = points[(int)edges.get(edge).y];
+  if(edges.get(edge).x == 9 && edges.get(edge).y == 7)
+  {
+    broken = true;
+    println("Broken edge!");
+  }
   
   float smallestBulge = 0000f;
   int closestPt = -1;
   
   for(int i = 0; i < nv; i++)
   {
-    if(i == edges.get(edge).x || i == edges.get(edge).y || isEdgeConnected(edge, i) || wouldCollide(edge, i)) continue;
+    if(i == edges.get(edge).x || i == edges.get(edge).y || isEdgeConnected(edge, i) || wouldCollide(edge, i))
+    {
+      if(broken && isEdgeConnected(edge, i)) println("Connected: " + i);
+      if(broken && wouldCollide(edge, i)) println("Collide: " + i);
+      continue;
+    }
     
     PVector tmp = new PVector(points[i].x - (a.x + b.x) / 2, points[i].y - (a.y + b.y) / 2);
     float angl = PVector.angleBetween(dir, tmp);
@@ -186,6 +197,17 @@ boolean isEdgeConnected(int edgeIdx, int pointIndex)
 {
   if(edges.get(edgeIdx).x == pointIndex || edges.get(edgeIdx).y == pointIndex) return true;
   
+  int count = 0;
+  for(pt edge : edges)
+  {
+    if(edge.x == pointIndex || edge.y == pointIndex)
+    {
+      if((edge.x == edges.get(edgeIdx).x || edge.y == edges.get(edgeIdx).x) ||
+      (edge.x == edges.get(edgeIdx).y || edge.y == edges.get(edgeIdx).y)) count++;
+    }
+  }
+  
+  if(count > 1) return true;
   return false;
 }
 
@@ -208,8 +230,10 @@ boolean wouldCollide(int edgeIdx, int pointIndex)
     pt p1 = points[(int)edge.x];
     pt p2 = points[(int)edge.y];
     
-    if(util.intersect(p1.x, p1.y, p2.x, p2.y, e1.x, e1.y, dest.x, dest.y) > 0) return true;
-    if(util.intersect(p1.x, p1.y, p2.x, p2.y, e2.x, e2.y, dest.x, dest.y) > 0) return true;
+    if(edge.x != myEdge.x && edge.y != myEdge.x)
+      if(util.intersect(p1.x, p1.y, p2.x, p2.y, e1.x, e1.y, dest.x, dest.y) > 0) return true;
+    if(edge.x != myEdge.y && edge.y != myEdge.y)
+      if(util.intersect(p1.x, p1.y, p2.x, p2.y, e2.x, e2.y, dest.x, dest.y) > 0) return true;
   }
   
   return false;
